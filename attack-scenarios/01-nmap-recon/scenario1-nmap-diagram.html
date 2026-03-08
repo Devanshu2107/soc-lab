@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scenario 1 — Nmap Reconnaissance Attack Flow</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+
+  :root {
+    --bg: #060a0f;
+    --panel: #0b1117;
+    --border: #1a2a3a;
+    --red: #ff2d55;
+    --blue: #00cfff;
+    --green: #00ff9f;
+    --yellow: #ffd60a;
+    --orange: #ff6b2b;
+    --text: #c8d8e8;
+    --dim: #4a6a8a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    padding: 40px 20px;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 80% 50% at 20% 20%, rgba(0,207,255,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(255,45,85,0.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 50px;
+  }
+
+  .scenario-tag {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--blue);
+    border: 1px solid var(--blue);
+    padding: 4px 14px;
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { border-color: var(--blue); box-shadow: 0 0 8px rgba(0,207,255,0.3); }
+    50% { border-color: rgba(0,207,255,0.4); box-shadow: none; }
+  }
+
+  h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  h1 span { color: var(--blue); }
+
+  .subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--dim);
+    letter-spacing: 2px;
+  }
+
+  /* MITRE badge */
+  .mitre {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,214,10,0.08);
+    border: 1px solid rgba(255,214,10,0.3);
+    padding: 6px 16px;
+    border-radius: 2px;
+    margin-top: 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--yellow);
+  }
+
+  /* Main flow container */
+  .flow {
+    max-width: 1100px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* Timeline line */
+  .timeline-line {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, transparent, var(--border) 10%, var(--border) 90%, transparent);
+    transform: translateX(-50%);
+  }
+
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 30px;
+    margin-bottom: 40px;
+    position: relative;
+    animation: fadeIn 0.5s ease forwards;
+    opacity: 0;
+  }
+
+  .step:nth-child(1) { animation-delay: 0.1s; }
+  .step:nth-child(2) { animation-delay: 0.2s; }
+  .step:nth-child(3) { animation-delay: 0.3s; }
+  .step:nth-child(4) { animation-delay: 0.4s; }
+  .step:nth-child(5) { animation-delay: 0.5s; }
+  .step:nth-child(6) { animation-delay: 0.6s; }
+
+  @keyframes fadeIn {
+    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(20px); }
+  }
+
+  .step-left { flex: 1; text-align: right; }
+  .step-right { flex: 1; }
+
+  .step-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .step-number {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 16px;
+    font-weight: bold;
+    position: relative;
+    z-index: 2;
+  }
+
+  .step-connector {
+    width: 2px;
+    height: 40px;
+    background: var(--border);
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px;
+    position: relative;
+    transition: border-color 0.3s;
+  }
+
+  .card:hover { border-color: var(--blue); }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .card-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    color: #fff;
+  }
+
+  .card p {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .code-block {
+    background: #040810;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    padding: 10px 14px;
+    margin-top: 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--green);
+    overflow-x: auto;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    margin-top: 10px;
+    border-radius: 2px;
+  }
+
+  /* Step-specific colors */
+  .step-attacker .step-number { background: rgba(255,45,85,0.15); border: 2px solid var(--red); color: var(--red); }
+  .step-attacker .card::before { background: var(--red); }
+  .step-attacker .card-tag { color: var(--red); }
+
+  .step-scan .step-number { background: rgba(255,107,43,0.15); border: 2px solid var(--orange); color: var(--orange); }
+  .step-scan .card::before { background: var(--orange); }
+  .step-scan .card-tag { color: var(--orange); }
+
+  .step-target .step-number { background: rgba(255,214,10,0.15); border: 2px solid var(--yellow); color: var(--yellow); }
+  .step-target .card::before { background: var(--yellow); }
+  .step-target .card-tag { color: var(--yellow); }
+
+  .step-sysmon .step-number { background: rgba(0,207,255,0.15); border: 2px solid var(--blue); color: var(--blue); }
+  .step-sysmon .card::before { background: var(--blue); }
+  .step-sysmon .card-tag { color: var(--blue); }
+
+  .step-wazuh .step-number { background: rgba(0,255,159,0.15); border: 2px solid var(--green); color: var(--green); }
+  .step-wazuh .card::before { background: var(--green); }
+  .step-wazuh .card-tag { color: var(--green); }
+
+  .step-alert .step-number { background: rgba(0,255,159,0.15); border: 2px solid var(--green); color: var(--green); }
+  .step-alert .card::before { background: var(--green); }
+  .step-alert .card-tag { color: var(--green); }
+
+  /* Network diagram at top */
+  .network-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 60px;
+    flex-wrap: wrap;
+  }
+
+  .node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .node-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    position: relative;
+  }
+
+  .node-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  .node-ip {
+    font-size: 10px;
+    color: var(--dim);
+  }
+
+  .arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 10px;
+    gap: 4px;
+    margin-top: -20px;
+  }
+
+  .arrow-line {
+    height: 2px;
+    width: 80px;
+    position: relative;
+  }
+
+  .arrow-line::after {
+    content: '►';
+    position: absolute;
+    right: -8px;
+    top: -9px;
+    font-size: 12px;
+  }
+
+  .arrow-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  /* Alert stats */
+  .stats-row {
+    display: flex;
+    gap: 20px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stat-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 22px;
+    font-weight: bold;
+  }
+
+  .stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 1px;
+  }
+
+  /* Bottom summary */
+  .summary {
+    max-width: 1100px;
+    margin: 40px auto 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .summary-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px;
+    text-align: center;
+  }
+
+  .summary-card .label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .summary-card .value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .tag-red { background: rgba(255,45,85,0.15); color: var(--red); border: 1px solid rgba(255,45,85,0.3); }
+  .tag-green { background: rgba(0,255,159,0.15); color: var(--green); border: 1px solid rgba(0,255,159,0.3); }
+  .tag-blue { background: rgba(0,207,255,0.15); color: var(--blue); border: 1px solid rgba(0,207,255,0.3); }
+  .tag-yellow { background: rgba(255,214,10,0.15); color: var(--yellow); border: 1px solid rgba(255,214,10,0.3); }
+
+  .scan-animation {
+    display: inline-block;
+    animation: scanPulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes scanPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  hr.divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 50px auto;
+    max-width: 1100px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="scenario-tag">SCENARIO 01 // ATTACK FLOW</div>
+  <h1>Nmap <span>Reconnaissance</span></h1>
+  <div class="subtitle">NETWORK SERVICE DISCOVERY · DETECTION ANALYSIS</div>
+  <br>
+  <div class="mitre">
+    ⚡ MITRE ATT&CK — T1046 · Network Service Discovery · Tactic: Discovery
+  </div>
+</div>
+
+<!-- Network Diagram -->
+<div class="network-diagram">
+  <!-- Kali -->
+  <div class="node">
+    <div class="node-icon" style="background: rgba(255,45,85,0.1); border: 2px solid var(--red);">💻</div>
+    <div class="node-label" style="color: var(--red);">KALI LINUX<br><span class="node-ip">192.168.100.10</span></div>
+    <span class="badge tag-red">ATTACKER</span>
+  </div>
+
+  <!-- Arrow 1 -->
+  <div class="arrow">
+    <div class="arrow-line" style="background: var(--red); color: var(--red);">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;►</div>
+    <div class="arrow-label" style="color: var(--red);">NMAP SCAN PACKETS</div>
+    <div class="arrow-label" style="color: var(--dim);">TCP SYN · Port Probing</div>
+  </div>
+
+  <!-- Windows 10 -->
+  <div class="node">
+    <div class="node-icon" style="background: rgba(255,214,10,0.1); border: 2px solid var(--yellow);">🖥️</div>
+    <div class="node-label" style="color: var(--yellow);">WINDOWS 10<br><span class="node-ip">192.168.100.20</span></div>
+    <span class="badge tag-yellow">TARGET</span>
+  </div>
+
+  <!-- Arrow 2 -->
+  <div class="arrow">
+    <div class="arrow-line" style="background: var(--blue); color: var(--blue);">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;►</div>
+    <div class="arrow-label" style="color: var(--blue);">SYSMON + WAZUH AGENT</div>
+    <div class="arrow-label" style="color: var(--dim);">Log Forwarding</div>
+  </div>
+
+  <!-- Wazuh -->
+  <div class="node">
+    <div class="node-icon" style="background: rgba(0,255,159,0.1); border: 2px solid var(--green);">🛡️</div>
+    <div class="node-label" style="color: var(--green);">WAZUH SIEM<br><span class="node-ip">192.168.100.40</span></div>
+    <span class="badge tag-green">DETECTION</span>
+  </div>
+</div>
+
+<!-- Attack Flow Steps -->
+<div class="flow">
+  <div class="timeline-line"></div>
+
+  <!-- Step 1 -->
+  <div class="step step-attacker">
+    <div class="step-left">
+      <div class="card">
+        <div class="card-tag">PHASE 1 · ATTACKER</div>
+        <h3>Reconnaissance Initiated</h3>
+        <p>Attacker on Kali Linux launches an Nmap service version scan targeting the Windows 10 victim machine on the isolated VMnet2 network.</p>
+        <div class="code-block">nmap -sV 192.168.100.20</div>
+        <span class="badge tag-red">192.168.100.10 → 192.168.100.20</span>
+      </div>
+    </div>
+    <div class="step-center">
+      <div class="step-number">1</div>
+      <div class="step-connector"></div>
+    </div>
+    <div class="step-right"></div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step step-scan">
+    <div class="step-left"></div>
+    <div class="step-center">
+      <div class="step-number">2</div>
+      <div class="step-connector"></div>
+    </div>
+    <div class="step-right">
+      <div class="card">
+        <div class="card-tag">PHASE 2 · NETWORK</div>
+        <h3>Port Probe Packets Sent</h3>
+        <p>Nmap sends TCP SYN packets across all ports probing for open services. Each packet hits Windows 10 generating network events.</p>
+        <div class="code-block">TCP SYN → Port 21 (FTP)<br>TCP SYN → Port 22 (SSH)<br>TCP SYN → Port 80 (HTTP)<br>TCP SYN → Port 445 (SMB)<br>TCP SYN → Port 3389 (RDP)<br><span class="scan-animation">■</span> Scanning 65535 ports...</div>
+        <span class="badge tag-red">HIGH VOLUME · SEQUENTIAL PORTS</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step step-target">
+    <div class="step-left">
+      <div class="card">
+        <div class="card-tag">PHASE 3 · VICTIM ENDPOINT</div>
+        <h3>Windows 10 Receives Probes</h3>
+        <p>Windows 10 receives the port probes. Sysmon (with SwiftOnSecurity ruleset) detects the unusual network connection patterns and logs Event ID 3 — Network Connection events.</p>
+        <div class="code-block">Event ID 3: Network Connection<br>SourceIp: 192.168.100.10<br>DestinationPort: [multiple]<br>Image: System</div>
+        <span class="badge tag-yellow">SYSMON EVENT ID 3 · NETWORK CONNECTION</span>
+      </div>
+    </div>
+    <div class="step-center">
+      <div class="step-number">3</div>
+      <div class="step-connector"></div>
+    </div>
+    <div class="step-right"></div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="step step-sysmon">
+    <div class="step-left"></div>
+    <div class="step-center">
+      <div class="step-number">4</div>
+      <div class="step-connector"></div>
+    </div>
+    <div class="step-right">
+      <div class="card">
+        <div class="card-tag">PHASE 4 · LOG FORWARDING</div>
+        <h3>Wazuh Agent Forwards Logs</h3>
+        <p>Wazuh Agent running on Windows 10 collects Sysmon events and Windows Event Logs in real-time and forwards them to the Wazuh Manager at 192.168.100.40.</p>
+        <div class="code-block">Wazuh Agent → Wazuh Manager<br>Protocol: TCP 1514<br>Format: JSON encoded events<br>Agent: Win10-victim (Active)</div>
+        <span class="badge tag-blue">REAL-TIME LOG STREAMING</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 5 -->
+  <div class="step step-wazuh">
+    <div class="step-left">
+      <div class="card">
+        <div class="card-tag">PHASE 5 · SIEM DETECTION</div>
+        <h3>Wazuh Raises 401 Alerts</h3>
+        <p>Wazuh Manager processes incoming logs against its ruleset. The high volume of connection attempts from a single source IP triggers port scan detection rules.</p>
+        <div class="code-block">Rule 40111: Multiple connection attempts<br>Rule Level: 7 (Medium-High)<br>Source IP: 192.168.100.10<br>Agent: Win10-victim<br>Total Alerts: 401</div>
+        <div class="stats-row">
+          <div class="stat">
+            <span class="stat-value" style="color: var(--red);">401</span>
+            <span class="stat-label">TOTAL ALERTS</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" style="color: var(--yellow);">7</span>
+            <span class="stat-label">RULE LEVEL</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" style="color: var(--blue);">~60s</span>
+            <span class="stat-label">TIMEFRAME</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="step-center">
+      <div class="step-number">5</div>
+      <div class="step-connector"></div>
+    </div>
+    <div class="step-right"></div>
+  </div>
+
+  <!-- Step 6 -->
+  <div class="step step-alert">
+    <div class="step-left"></div>
+    <div class="step-center">
+      <div class="step-number">6</div>
+    </div>
+    <div class="step-right">
+      <div class="card">
+        <div class="card-tag">PHASE 6 · ANALYST RESPONSE</div>
+        <h3>SOC Analyst Investigates</h3>
+        <p>SOC analyst opens Wazuh dashboard, identifies the alert spike, correlates source IP, checks MITRE ATT&CK mapping, and documents findings in an incident report.</p>
+        <div class="code-block">MITRE ATT&CK: T1046<br>Tactic: Discovery<br>Technique: Network Service Discovery<br>Severity: MEDIUM<br>Action: Monitor for follow-on exploitation</div>
+        <span class="badge tag-green">✓ DETECTED · DOCUMENTED · REPORTED</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<hr class="divider">
+
+<!-- Summary Cards -->
+<div class="summary">
+  <div class="summary-card">
+    <div class="label">ATTACK TOOL</div>
+    <div class="value">Nmap -sV</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">ATTACKER IP</div>
+    <div class="value" style="color: var(--red);">192.168.100.10</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">TARGET IP</div>
+    <div class="value" style="color: var(--yellow);">192.168.100.20</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">ALERTS GENERATED</div>
+    <div class="value" style="color: var(--red);">401</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">MITRE TECHNIQUE</div>
+    <div class="value" style="color: var(--blue);">T1046</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">DETECTION STATUS</div>
+    <div class="value" style="color: var(--green);">✓ DETECTED</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">SEVERITY</div>
+    <div class="value" style="color: var(--yellow);">MEDIUM</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">NETWORK</div>
+    <div class="value">VMnet2 Isolated</div>
+  </div>
+</div>
+
+<div style="text-align:center; margin-top: 40px; font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--dim); letter-spacing: 2px;">
+  SOC HOME LAB · github.com/Devanshu2107/soc-lab · SCENARIO 01 OF 05
+</div>
+
+</body>
+</html>
