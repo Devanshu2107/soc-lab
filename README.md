@@ -26,6 +26,14 @@ and the detection engineering behind them.
 | 4 | Persistence via Scheduled Task | Msfvenom | T1053 | 🔨 In Progress |
 | 5 | PowerShell Obfuscation | Msfvenom | T1059 | 🔨 In Progress |
 
+## Scenario 1: Nmap Reconnaissance
+
+###  Interactive Attack Flow Diagram
+
+**[View Interactive Diagram](https://devanshu2107.github.io/soc-lab/attack-scenarios/01-nmap-recon/scenario1-rtbt-diagram.html)** 
+
+This diagram shows the complete Red Team attack and Blue Team defense flow.
+
 ## Detection Engineering
 Custom Wazuh rules written to detect each attack pattern,
 mapped to MITRE ATT&CK techniques. See `siem-rules/` folder.
