@@ -30,7 +30,7 @@ and the detection engineering behind them.
 
 ###  Interactive Attack Flow Diagram
 
-**[View Interactive Diagram](https://devanshu2107.github.io/soc-lab/attack-scenarios/01-nmap-recon/scenario1-rtbt-diagram.html)** 
+**[View Interactive Diagram](https://devanshu2107.github.io/soc-lab/attack-scenarios/01-nmap-recon/scenario1-nmap-diagram.html)** 
 
 This diagram shows the complete Red Team attack and Blue Team defense flow.
 
